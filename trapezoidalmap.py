@@ -430,7 +430,7 @@ def buildTrapezoidalMap(lineSegments,dag,cells):
 
 
 def main():
-    inputfile=open("4.txt",'r')
+    inputfile=open("D:/2020fall/716 computational geometry/coding assignments/a3/TrapezoidalMap/4.txt",'r')
     inputfile.readline()    #ignore number of line segments
 
     #get bounding box
@@ -470,7 +470,7 @@ def main():
     buildTrapezoidalMap(lineSegments,dag,cells)
 
     dag.printRecursive(0)
-    dag.plot("plot.png")
+    dag.plot("D:/2020fall/716 computational geometry/coding assignments/a3/TrapezoidalMap/plot.png")
     #TODO print out the required matrix
 
     #TODO ask user to input a point and call pointLocate to find its cell
