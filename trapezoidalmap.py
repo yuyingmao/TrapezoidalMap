@@ -138,6 +138,23 @@ class DAG:
         self.rightChild=rightChild
 
     """
+    Find a particular item in this DAG.
+    """
+    def findRecursive(self, item):
+        if isinstance(self.itself, type(item)):
+            if self.itself == item:
+                return self
+        lc = None
+        rc = None
+        if self.leftChild:
+            lc = self.leftChild.findRecursive(item)
+        if self.rightChild:
+            rc = self.rightChild.findRecursive(item)
+        if lc:
+            return lc
+        return rc
+
+    """
     Print out this DAG.
     """
     def printRecursive(self, indent):
@@ -384,6 +401,25 @@ def buildTrapezoidalMap(lineSegments,dag,cells):
         qNode=pointLocate(q,dag)
         pCell=pNode.itself
         qCell=qNode.itself
+
+        for cell in cells:
+            if cell.below.start == p and q.y > cell.below.get_y(q.x):
+                # Segment shares a left endpoint with a segment below it
+                pCell = cell
+                pNode = dag.findRecursive(pCell)
+            elif cell.above.start == p and q.y < cell.above.get_y(q.x):
+                # Segment shares a left endpoint with a segment above it
+                pCell = cell
+                pNode = dag.findRecursive(pCell)
+            elif cell.below.end == q and p.y > cell.below.get_y(q.x):
+                # Segment shares a right endpoint with a segment below it
+                qCell = cell
+                qNode = dag.findRecursive(qCell)
+            elif cell.above.end == q and p.y < cell.above.get_y(q.x):
+                # Segment shares a right endpoint with a segment agove it
+                qCell = cell
+                qNode = dag.findRecursive(qCell)
+
         #create and add walls
         pWall,qWall=wallCreate(pCell,qCell,p,q)
         walls.append(pWall)
@@ -429,26 +465,34 @@ def buildTrapezoidalMap(lineSegments,dag,cells):
             prevBottom = None
 
             for c in intersectedCells:
-                if c == pCell:
+                if c == pCell or c.right == pCell.left:
                     # Case 1: Left endpoint
                     leftCell = Cell(pCell.left, pWall, pCell.above, pCell.below)
                     topCell = Cell(pWall, pCell.right, pCell.above, ls)
                     bottomCell = Cell(pWall, pCell.right, ls, pCell.below)
 
                     cells.remove(pCell)
-                    cells.append(leftCell)
                     cells.append(topCell)
                     cells.append(bottomCell)
 
-                    pNode.itself = p
-                    pNode.leftChild = DAG(None, leftCell, None)
-                    pNode.rightChild = DAG(DAG(None, topCell, None), ls, DAG(None, bottomCell, None))
+                    if ls.start == pCell.above.start or ls.start == pCell.below.start:
+                        # Same endpoint as another line
+
+                        pNode.itself = ls
+                        pNode.leftChild = DAG(None, topCell, None)
+                        pNode.rightChild = DAG(None, bottomCell, None)
+                    else:
+                        cells.append(leftCell)
+
+                        pNode.itself = p
+                        pNode.leftChild = DAG(None, leftCell, None)
+                        pNode.rightChild = DAG(DAG(None, topCell, None), ls, DAG(None, bottomCell, None))
 
                     prevTop = pNode.rightChild.leftChild
                     prevBottom = pNode.rightChild.rightChild
-                elif c == qCell:
+                elif c == qCell or c.left == qCell.right:
                     # Case 1: Right endpoint
-                    leftWall = c.left
+                    leftWall = qCell.left
                     if ls.get_y(leftWall.x) < leftWall.ys:
                         # Point is above new line, need to merge cell below
 
@@ -460,13 +504,21 @@ def buildTrapezoidalMap(lineSegments,dag,cells):
                         rightCell = Cell(qWall, qCell.right, qCell.above, qCell.below)
 
                         cells.remove(qCell)
-                        cells.append(rightCell)
                         cells.append(topCell)
                         cells.append(bottomCell)
 
-                        qNode.itself = q
-                        qNode.rightChild = DAG(None, rightCell, None)
-                        qNode.leftChild = DAG(DAG(None, topCell, None), ls, DAG(None, bottomCell, None))
+                        if ls.end == qCell.below.end or ls.end == qCell.above.end:
+                            # Same endpoint as another line
+                            qNode.itself = ls
+                            qNode.leftChild = DAG(None, topCell, None)
+                            qNode.rightChild = DAG(None, bottomCell, None)
+
+                        else:
+                            cells.append(rightCell)
+
+                            qNode.itself = q
+                            qNode.rightChild = DAG(None, rightCell, None)
+                            qNode.leftChild = DAG(DAG(None, topCell, None), ls, DAG(None, bottomCell, None))
 
                         # Update the previous bottom node to be the same as this bottom node
                         cells.remove(prevBottom.itself)
@@ -482,13 +534,20 @@ def buildTrapezoidalMap(lineSegments,dag,cells):
                         rightCell = Cell(qWall, qCell.right, qCell.above, qCell.below)
 
                         cells.remove(qCell)
-                        cells.append(rightCell)
                         cells.append(topCell)
                         cells.append(bottomCell)
 
-                        qNode.itself = q
-                        qNode.rightChild = DAG(None, rightCell, None)
-                        qNode.leftChild = DAG(DAG(None, topCell, None), ls, DAG(None, bottomCell, None))
+                        if ls.end == qCell.above.end or ls.end == qCell.below.end:
+                            # Same endpoint as another line
+                            qNode.itself = ls
+                            qNode.leftChild = DAG(None, topCell, None)
+                            qNode.rightChild = DAG(None, bottomCell, None)
+                        else:
+                            cells.append(rightCell)
+
+                            qNode.itself = q
+                            qNode.rightChild = DAG(None, rightCell, None)
+                            qNode.leftChild = DAG(DAG(None, topCell, None), ls, DAG(None, bottomCell, None))
 
                         # Update the previous top node to be the same as this top node
                         cells.remove(prevTop.itself)
